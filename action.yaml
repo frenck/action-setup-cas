@@ -24,14 +24,12 @@ runs:
       shell: bash
       run: |
         version="v$( echo '${{ inputs.version }}' | sed s/^v//)"
-        echo "${version}"
         if [[ "${{ inputs.version }}" == "latest" ]]; then
           version=$(curl -s https://api.github.com/repos/codenotary/cas/releases/latest | jq -r '.tag_name')
         fi
-        echo "${version}"
 
         if [[ "${version}" == "null" ]]; then
-          exit 2;
+          exit 1;
         fi
 
         echo "::set-output name=version::${version}"
