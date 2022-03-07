@@ -1,0 +1,60 @@
+---
+name: "Frenck's Codenotary Community Attestation Service (CAS) setup"
+description: 🚀 Frenck's GitHub Action for setting up the Codenotary Community Attestation Service (CAS) CLI.
+author: frenck
+
+branding:
+  color: red
+  icon: thumbs-up
+
+inputs:
+  version:
+    required: false
+    description: The version of the Codenotary Community Attestation Service (CAS) to install
+    default: latest
+outputs:
+  version:
+    description: The version of Codenotary Community Attestation Service (CAS) that was installed
+    value: ${{ steps.version.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      run: |
+        version="v$( echo '${{ inputs.version }}' | sed s/^v//)"
+        if [[ "${{ inputs.version }}" == "latest" ]]; then
+          version=$(curl -s https://api.github.com/repos/codenotary/cas/releases/latest | jq -r '.tag_name')
+        fi
+
+        if [[ "${version}" == "null" ]]; then
+          exit 1;
+        fi
+
+        echo "::set-output name=version::${version}"
+    - shell: bash
+      run: |
+        echo "Installing Codenotary Community Attestation Service (CAS) ${{ steps.version.outputs.version }}..."
+
+        if [[ "${{ runner.os }}" == "Linux" ]]; then
+          download="cas-${{ steps.version.outputs.version }}-linux-amd64"
+        elif [[ "${{ runner.os }}" == "Windows" ]]; then
+          download="cas-${{ steps.version.outputs.version }}-windows-amd64.exe"
+        elif [[ "${{ runner.os }}" == "macOS" ]]; then
+          download="cas-${{ steps.version.outputs.version }}-darwin-amd64"
+        fi
+
+        dest="${RUNNER_TEMP}/cas/"
+        mkdir -p "${dest}"
+
+        curl \
+          -L \
+          "https://github.com/codenotary/cas/releases/download/${{ steps.version.outputs.version }}/${download}" \
+          --output "${dest}cas"
+
+        if [[ "${{ runner.os }}" != "Windows" ]]; then
+          chmod +x "${dest}cas"
+        fi
+
+        echo "${dest}" >> $GITHUB_PATH
