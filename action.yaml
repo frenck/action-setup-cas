@@ -25,7 +25,16 @@ runs:
       run: |
         version="v$( echo '${{ inputs.version }}' | sed s/^v//)"
         if [[ "${{ inputs.version }}" == "latest" ]]; then
-          version=$(curl -s https://api.github.com/repos/codenotary/cas/releases/latest | jq -r '.tag_name')
+          version=$(
+            curl \
+              --silent \
+              --retry 3 \
+              --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              --header "Content-Type: application/json" \
+              --header "Accept: application/vnd.github.v3+json" \
+              --url https://api.github.com/repos/codenotary/cas/releases/latest \
+              | jq -r '.tag_name'
+          )
         fi
 
         if [[ "${version}" == "null" ]]; then
@@ -50,7 +59,8 @@ runs:
 
         curl \
           -L \
-          "https://github.com/codenotary/cas/releases/download/${{ steps.version.outputs.version }}/${download}" \
+          --retry 3 \
+          --url "https://github.com/codenotary/cas/releases/download/${{ steps.version.outputs.version }}/${download}" \
           --output "${dest}cas"
 
         if [[ "${{ runner.os }}" != "Windows" ]]; then
